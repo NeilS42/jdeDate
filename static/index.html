@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JDE Date</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">JD</span>
+        <div>
+          <h1>JDE Date</h1>
+          <p class="brand-sub">Julian and Gregorian conversion</p>
+        </div>
+      </div>
+      <div class="format-control">
+        <label for="dateFormatSelect">Date format</label>
+        <select id="dateFormatSelect">
+          <option value="dd/mm/yyyy">DD/MM/YYYY</option>
+          <option value="mm/dd/yyyy">MM/DD/YYYY (US)</option>
+        </select>
+        <p id="dateFormatDescription" class="format-note"></p>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+    <p class="lede">
+      Convert between Gregorian dates (DD/MM/YYYY or MM/DD/YYYY) and JDE Julian dates. JDE Julian dates range from 1001 (1st January 1901) to 199365 (31st December 2099).
+    </p>
+
+    <div id="pageError" class="banner-error" hidden></div>
+
+    <section class="card current-card">
+      <h2>Current date</h2>
+      <div class="current-row">
+        <div class="current-pair">
+          <span class="label">Current date</span>
+          <span class="value" id="currentDateDisplay"></span>
+        </div>
+        <span class="arrow" aria-hidden="true">→</span>
+        <div class="current-pair">
+          <span class="label">JDE Julian</span>
+          <span class="value" id="currentJulianDisplay"></span>
+          <button class="icon-btn" type="button" onclick="copyCurrentJulianToClipboard(this)" title="Copy to clipboard" aria-label="Copy JDE Julian date">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+              <rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"></rect>
+              <path d="M6 16H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" fill="none" stroke="currentColor" stroke-width="2"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <div class="split">
+      <section class="card">
+        <h2>Gregorian to JDE Julian</h2>
+        <p class="card-note">Convert a Gregorian date to JDE Julian format</p>
+        <div class="convert-row">
+          <div class="field">
+            <label for="gregorianDate">Gregorian date</label>
+            <input type="text" id="gregorianDate" placeholder="  /  /    " maxlength="10" autocomplete="off">
+            <span class="hint">Enter date in the selected format</span>
+          </div>
+          <button type="button" class="convert-btn" onclick="convertGregorianToJulian()" aria-label="Convert Gregorian date to JDE Julian">→</button>
+          <div class="field">
+            <label for="julianResult">JDE Julian date</label>
+            <input type="text" id="julianResult" readonly>
+            <span class="hint">JDE Julian date result</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>JDE Julian to Gregorian</h2>
+        <p class="card-note">Convert a JDE Julian date to Gregorian format</p>
+        <div class="convert-row">
+          <div class="field">
+            <label for="julianDate">JDE Julian date</label>
+            <input type="text" id="julianDate" placeholder="Between 1001 and 199365" autocomplete="off">
+            <span class="hint">Enter a JDE Julian date</span>
+          </div>
+          <button type="button" class="convert-btn" onclick="convertJulianToGregorian()" aria-label="Convert JDE Julian date to Gregorian">→</button>
+          <div class="field">
+            <label for="gregorianResult">Gregorian date</label>
+            <input type="text" id="gregorianResult" readonly>
+            <span class="hint">Gregorian date result</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="card">
+      <h2>Calculate days between</h2>
+      <p class="card-note">Enter two Gregorian or two Julian dates and see the number of days between them</p>
+
+      <div class="days-block">
+        <div class="days-row">
+          <span class="days-label">Gregorian dates</span>
+          <input type="text" id="daysGregorianFrom" placeholder="dd/mm/yyyy" maxlength="10" aria-label="First Gregorian date" autocomplete="off">
+          <input type="text" id="daysGregorianTo" placeholder="dd/mm/yyyy" maxlength="10" aria-label="Second Gregorian date" autocomplete="off">
+          <button type="button" class="action-btn" id="daysGregorianBtn" onclick="calculateGregorianDaysBetween()" disabled>Calculate days between</button>
+          <input type="text" id="daysGregorianResult" readonly aria-label="Days between Gregorian dates">
+        </div>
+        <p id="daysGregorianError" class="row-error" hidden></p>
+      </div>
+
+      <div class="days-block">
+        <div class="days-row">
+          <span class="days-label">Julian dates</span>
+          <input type="text" id="daysJulianFrom" placeholder="cyyddd" maxlength="6" aria-label="First Julian date" autocomplete="off">
+          <input type="text" id="daysJulianTo" placeholder="cyyddd" maxlength="6" aria-label="Second Julian date" autocomplete="off">
+          <button type="button" class="action-btn" id="daysJulianBtn" onclick="calculateJulianDaysBetween()" disabled>Calculate days between</button>
+          <input type="text" id="daysJulianResult" readonly aria-label="Days between Julian dates">
+        </div>
+        <p id="daysJulianError" class="row-error" hidden></p>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Examples and information</h2>
+      <div class="examples">
+        <div>
+          <h3>Gregorian date examples</h3>
+          <ul>
+            <li><strong>DD/MM/YYYY:</strong> 25/12/2023 (25th December 2023)</li>
+            <li><strong>MM/DD/YYYY:</strong> 12/25/2023 (25th December 2023)</li>
+            <li><strong>01/01/1901</strong> = JDE Julian 1001</li>
+            <li><strong>31/12/2099</strong> = JDE Julian 199365</li>
+          </ul>
+        </div>
+        <div>
+          <h3>JDE Julian date examples</h3>
+          <ul>
+            <li><strong>1001</strong> = 1st January 1901</li>
+            <li><strong>101001</strong> = 1st January 2001</li>
+            <li><strong>101335</strong> = 1st December 2001</li>
+            <li><strong>199365</strong> = 31st December 2099</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>JDE Date</span>
+  </footer>
+
+  <script src="/js/dates.js"></script>
+</body>
+</html>
