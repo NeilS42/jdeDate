@@ -1,15 +1,29 @@
 package main
 
 import (
+	"embed"
+	"io/fs"
 	"log"
 	"net/http"
+	"os"
 )
 
-func main() {
-	fs := http.FileServer(http.Dir("static"))
-	http.Handle("/", fs)
+//go:embed static
+var staticFiles embed.FS
 
-	addr := ":5010"
+func main() {
+	staticFS, err := fs.Sub(staticFiles, "static")
+	if err != nil {
+		log.Fatal(err)
+	}
+	
+	http.Handle("/", http.FileServer(http.FS(staticFS)))
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "5010"
+	}
+	addr := ":" + port
 	log.Printf("JDE Date listening on http://localhost%s", addr)
 	if err := http.ListenAndServe(addr, nil); err != nil {
 		log.Fatal(err)
