@@ -1,13 +1,21 @@
 const checkIcon = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 12.5 9.2 17 19 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>';
 
+const gregorianPickerIds = ['gregorianDate', 'daysGregorianFrom', 'daysGregorianTo'];
+let gregorianPickers = [];
+let activeGregorianFormat = 'dd/mm/yyyy';
+
 document.addEventListener('DOMContentLoaded', function() {
   updateDateFormatDescription();
   updateCurrentDate();
+  initGregorianPickers();
 
   document.getElementById('dateFormatSelect').addEventListener('change', function() {
+    const previousFormat = activeGregorianFormat;
+    activeGregorianFormat = this.value;
     updateDateFormatDescription();
     updatePlaceholders();
     updateCurrentDate();
+    rewriteGregorianFields(previousFormat, activeGregorianFormat);
     document.getElementById('daysGregorianResult').value = '';
     updateDaysBetweenState();
   });
@@ -24,14 +32,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  document.getElementById('gregorianDate').addEventListener('input', function(e) {
-    formatGregorianInput(e.target);
-  });
+  document.getElementById('gregorianDate').addEventListener('input', rememberTypedGregorian);
 
   ['daysGregorianFrom', 'daysGregorianTo'].forEach(function(id) {
     const input = document.getElementById(id);
     input.addEventListener('input', function(e) {
-      formatGregorianInput(e.target);
+      rememberTypedGregorian(e);
       document.getElementById('daysGregorianResult').value = '';
       updateDaysBetweenState();
     });
@@ -96,6 +102,104 @@ function formatGregorianInput(input) {
   }
 
   input.value = formattedValue;
+}
+
+function flatpickrFormat(appFormat) {
+  return appFormat === 'mm/dd/yyyy' ? 'm/d/Y' : 'd/m/Y';
+}
+
+function appFormatFromFlatpickr(fpFormat) {
+  return fpFormat === 'm/d/Y' ? 'mm/dd/yyyy' : 'dd/mm/yyyy';
+}
+
+function rememberTypedGregorian(event) {
+  formatGregorianInput(event.target);
+  if (event.isTrusted) {
+    event.target.dataset.typed = event.target.value;
+  }
+}
+
+function restoreRejectedGregorian(instance) {
+  const typed = instance.input.dataset.typed || '';
+  if (!instance.selectedDates.length && typed && instance.input.value !== typed) {
+    instance.input.value = typed;
+  }
+}
+
+function syncGregorianPicker(instance) {
+  restoreRejectedGregorian(instance);
+  if (instance.selectedDates.length) {
+    instance.input.dataset.typed = instance.input.value;
+  }
+  if (instance.input.id !== 'daysGregorianFrom' && instance.input.id !== 'daysGregorianTo') {
+    return;
+  }
+  if (instance.input.dataset.pickerValue !== instance.input.value) {
+    document.getElementById('daysGregorianResult').value = '';
+    instance.input.dataset.pickerValue = instance.input.value;
+  }
+  updateDaysBetweenState();
+}
+
+function parseFlatpickrDate(dateStr, fpFormat) {
+  try {
+    return parseStrictGregorianDate(String(dateStr).trim(), appFormatFromFlatpickr(fpFormat));
+  } catch (error) {
+    return undefined;
+  }
+}
+
+function initGregorianPickers() {
+  const format = document.getElementById('dateFormatSelect').value;
+  activeGregorianFormat = format;
+  gregorianPickers = gregorianPickerIds.map(function(id) {
+    const input = document.getElementById(id);
+    input.dataset.pickerValue = input.value;
+    return flatpickr(input, {
+      dateFormat: flatpickrFormat(format),
+      allowInput: true,
+      disableMobile: true,
+      minDate: new Date(1901, 0, 1),
+      maxDate: new Date(2099, 11, 31),
+      parseDate: parseFlatpickrDate,
+      errorHandler: function(error) {
+        const message = error && error.message ? error.message : String(error);
+        if (message.indexOf('Invalid date provided') !== 0) {
+          console.warn(error);
+        }
+      },
+      onChange: function(selectedDates, dateStr, instance) {
+        syncGregorianPicker(instance);
+      },
+      onClose: function(selectedDates, dateStr, instance) {
+        syncGregorianPicker(instance);
+      }
+    });
+  });
+}
+
+function rewriteGregorianFields(previousFormat, nextFormat) {
+  const fpFormat = flatpickrFormat(nextFormat);
+  gregorianPickers.forEach(function(picker) {
+    const raw = (picker.input.dataset.typed || picker.input.value || '').trim();
+    let parsed = null;
+    if (raw) {
+      try {
+        parsed = parseStrictGregorianDate(raw, previousFormat);
+      } catch (error) {
+        parsed = null;
+      }
+    }
+    picker.set('dateFormat', fpFormat);
+    if (parsed) {
+      picker.setDate(parsed, false);
+      picker.input.dataset.typed = picker.input.value;
+    } else if (raw) {
+      picker.input.value = raw;
+      picker.input.dataset.typed = raw;
+    }
+    picker.input.dataset.pickerValue = picker.input.value;
+  });
 }
 
 function formatJulianInput(input) {
