@@ -1,26 +1,23 @@
 package main
 
 import (
+	"embed"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 )
 
+//go:embed static
+var staticFiles embed.FS
+
 func main() {
-	staticDir := "static"
-	
-	if _, err := os.Stat(staticDir); os.IsNotExist(err) {
-		exePath, err := os.Executable()
-		if err == nil {
-			staticDir = filepath.Join(filepath.Dir(exePath), "static")
-		}
+	staticFS, err := fs.Sub(staticFiles, "static")
+	if err != nil {
+		log.Fatal(err)
 	}
 	
-	log.Printf("Serving static files from: %s", staticDir)
-	
-	fs := http.FileServer(http.Dir(staticDir))
-	http.Handle("/", fs)
+	http.Handle("/", http.FileServer(http.FS(staticFS)))
 
 	port := os.Getenv("PORT")
 	if port == "" {
